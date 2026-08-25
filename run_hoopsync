@@ -1,0 +1,6 @@
+#!/bin/bash
+# HoopSync - NBA 2K Statistics Pipeline
+# Simple executable wrapper that calls Python on the main script
+
+cd "$(dirname "$0")"
+python3 main.py "$@"
