@@ -11,8 +11,12 @@ import logging
 import time
 from pathlib import Path
 
-from ..processing_engine.models import GameEvent, GameSession, PlayerStats, PlayerAttributes
-from ..config.config_loader import load_config
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from processing_engine.models import GameEvent, GameSession, PlayerStats, PlayerAttributes
+from config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

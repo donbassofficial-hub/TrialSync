@@ -10,6 +10,10 @@ from datetime import datetime
 from typing import Optional
 from pathlib import Path
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+
 from data_acquisition import FrameCapture, FrameCaptureSimulator
 from processing_engine import (
     FrameDetector, ROIExtractor, OCRParser, StatParser,

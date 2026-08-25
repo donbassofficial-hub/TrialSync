@@ -9,9 +9,13 @@ from typing import Dict, Any, List, Optional
 import logging
 from pathlib import Path
 
-from .database import LocalEventDatabase
-from ..processing_engine.models import GameSession, PlayerStats
-from ..config.config_loader import load_config
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from local_storage_display.database import LocalEventDatabase
+from processing_engine.models import GameSession, PlayerStats
+from config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

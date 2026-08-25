@@ -10,8 +10,12 @@ from typing import List, Optional, Dict, Any
 import logging
 from pathlib import Path
 
-from .models import Frame, DetectionResult, ROI, ExtractedRegion, ScreenType
-from ..config.config_loader import load_config
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from processing_engine.models import Frame, DetectionResult, ROI, ExtractedRegion, ScreenType
+from config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 

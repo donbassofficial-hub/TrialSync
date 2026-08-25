@@ -16,8 +16,12 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
 from sqlalchemy.dialects.sqlite import JSON
 
-from ..processing_engine.models import GameEvent, GameSession, PlayerStats, PlayerAttributes, ScreenType
-from ..config.config_loader import load_config
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from processing_engine.models import GameEvent, GameSession, PlayerStats, PlayerAttributes, ScreenType
+from config.config_loader import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +60,7 @@ class DBGameEvent(Base):
     # Store stats as JSON
     stats_data = Column(JSON, nullable=True)
     attributes_data = Column(JSON, nullable=True)
-    metadata = Column(JSON, nullable=True)
+    event_metadata = Column(JSON, nullable=True)
     
     # Deduplication fields
     is_duplicate = Column(Boolean, default=False, index=True)
@@ -242,7 +246,7 @@ class LocalEventDatabase:
                 ocr_confidence=event.ocr_confidence,
                 stats_data=stats_dict,
                 attributes_data=attributes_dict,
-                metadata=event.metadata,
+                event_metadata=event.metadata,
                 is_duplicate=False
             )
             
@@ -462,7 +466,7 @@ class LocalEventDatabase:
             attributes=attributes,
             detection_confidence=db_event.detection_confidence,
             ocr_confidence=db_event.ocr_confidence,
-            metadata=db_event.metadata or {}
+            metadata=db_event.event_metadata or {}
         )
     
     def get_player_stats(self, session_id: str, player_name: str) -> Optional[PlayerStats]:

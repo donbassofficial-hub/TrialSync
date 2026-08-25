@@ -78,15 +78,15 @@ def main():
     if str(script_dir) not in sys.path:
         sys.path.insert(0, str(script_dir))
     
-    # Run main application
+    # Run main application using subprocess to avoid import issues
     try:
-        import main as hoopsync_main
-        hoopsync_main.main()
-    except Exception as e:
+        subprocess.check_call([sys.executable, 'main.py'] + sys.argv[1:])
+    except subprocess.CalledProcessError as e:
         print(f"❌ Error running HoopSync: {e}")
-        import traceback
-        traceback.print_exc()
         sys.exit(1)
+    except KeyboardInterrupt:
+        print("\n👋 HoopSync stopped by user")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
