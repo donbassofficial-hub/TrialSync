@@ -27,16 +27,18 @@ class OCRParser:
     Parses text and numbers from extracted regions using OCR
     """
     
-    def __init__(self, config_path: str = "config/config.yaml"):
+    def __init__(self, config_path: str = "config/config.yaml", simulator_mode: bool = False):
         """
         Initialize OCR parser
         
         Args:
             config_path: Path to configuration file
+            simulator_mode: If True, use synthetic data instead of OCR
         """
         self.config = load_config(config_path)
         self.ocr_config = self.config.get('ocr', {})
         
+        self.simulator_mode = simulator_mode
         self.engine = self.ocr_config.get('engine', 'tesseract')
         self.language = self.ocr_config.get('language', 'eng')
         self.confidence_threshold = self.ocr_config.get('confidence_threshold', 0.7)
@@ -46,6 +48,8 @@ class OCRParser:
         self._configure_tesseract()
         
         logger.info(f"OCRParser initialized with {self.engine} engine")
+        if simulator_mode:
+            logger.info("Running in simulator mode with synthetic data extraction")
     
     def _configure_tesseract(self):
         """Configure Tesseract OCR engine"""
@@ -67,6 +71,10 @@ class OCRParser:
         Returns:
             OCRResult with extracted text and confidence
         """
+        # Use synthetic data in simulator mode
+        if self.simulator_mode:
+            return self._get_synthetic_ocr_result(region)
+        
         try:
             # Decode region image
             nparr = np.frombuffer(region.image_data, np.uint8)
@@ -106,6 +114,68 @@ class OCRParser:
                 region_label=region.roi.label,
                 timestamp=datetime.now()
             )
+    
+    def _get_synthetic_ocr_result(self, region: ExtractedRegion) -> OCRResult:
+        """
+        Generate synthetic OCR results for simulator mode
+        
+        Args:
+            region: Extracted region
+            
+        Returns:
+            OCRResult with synthetic data
+        """
+        # Map region labels to synthetic data
+        synthetic_data = {
+            # Scoreboard data
+            'player_name': 'LeBron James',
+            'points': '28',
+            'rebounds': '7', 
+            'assists': '11',
+            
+            # Box score data
+            'fg': '9/15',
+            'three_pt': '4/8',
+            'ft': '6/7',
+            'pts': '28',
+            'reb': '7',
+            'ast': '11',
+            'stl': '2',
+            'blk': '1',
+            'tov': '3',
+            
+            # Player attributes (with underscores to match ROI labels)
+            'three_pt_shot': '92',
+            'driving_dunk': '85',
+            'mid_range': '88',
+            'standing_dunk': '70',
+            'free_throw': '78',
+            'post_control': '75',
+            'pass_accuracy': '89',
+            'ball_handle': '82',
+            'speed': '78',
+            'acceleration': '80'
+        }
+        
+        # Get synthetic text for this region, trying both original and normalized labels
+        label_lower = region.roi.label.lower()
+        text = synthetic_data.get(label_lower)
+        
+        # If not found, try with underscores replaced
+        if text is None:
+            text = synthetic_data.get(label_lower.replace('_', ''))
+        
+        # If still not found, generate based on label
+        if text is None:
+            text = f"Synthetic {region.roi.label}"
+        
+        return OCRResult(
+            text=text,
+            confidence=0.95,  # High confidence for synthetic data
+            region_label=region.roi.label,
+            timestamp=datetime.now(),
+            raw_data=region.image_data
+        )
     
     def _preprocess_image(self, img: np.ndarray) -> np.ndarray:
         """
@@ -197,7 +267,6 @@ class OCRParser:
         
         # Fix common OCR errors
         text = text.replace('|', 'I')  # Common misrecognition
-        text = text.replace('0', 'O')  # Sometimes numbers are letters
         
         return text.strip()
     
@@ -400,9 +469,9 @@ class StatParser:
     Specialized parser for basketball statistics
     """
     
-    def __init__(self):
+    def __init__(self, simulator_mode: bool = False):
         """Initialize stat parser"""
-        self.ocr_parser = OCRParser()
+        self.ocr_parser = OCRParser(simulator_mode=simulator_mode)
     
     def parse_box_score(self, regions: List[ExtractedRegion]) -> List[PlayerStats]:
         """

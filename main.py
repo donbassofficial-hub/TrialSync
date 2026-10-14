@@ -90,14 +90,14 @@ class HoopSyncPipeline:
                 self.frame_capture = FrameCapture()
             
             # Frame Detector
-            self.frame_detector = FrameDetector()
+            self.frame_detector = FrameDetector(simulator_mode=self.use_simulator)
             
             # ROI Extractor
             self.roi_extractor = ROIExtractor()
             
             # OCR Parser
-            self.ocr_parser = OCRParser()
-            self.stat_parser = StatParser()
+            self.ocr_parser = OCRParser(simulator_mode=self.use_simulator)
+            self.stat_parser = StatParser(simulator_mode=self.use_simulator)
             
             # Database
             self.database = LocalEventDatabase()
@@ -189,6 +189,8 @@ class HoopSyncPipeline:
             # Step 1: Detect screen type
             detection = self.frame_detector.detect(frame)
             
+            self.logger.debug(f"Frame {frame.frame_number}: Detected {detection.screen_type} with confidence {detection.confidence}")
+            
             if detection.screen_type == ScreenType.UNKNOWN:
                 return  # Skip unknown screens
             
@@ -196,6 +198,8 @@ class HoopSyncPipeline:
             
             # Step 2: Extract regions of interest
             regions = self.roi_extractor.extract(frame, detection)
+            
+            self.logger.debug(f"Frame {frame.frame_number}: Extracted {len(regions)} regions")
             
             if not regions:
                 return  # No regions extracted
@@ -205,6 +209,7 @@ class HoopSyncPipeline:
             for region in regions:
                 ocr_result = self.ocr_parser.parse(region)
                 ocr_results.append(ocr_result)
+                self.logger.debug(f"ROI {region.roi.label}: OCR result '{ocr_result.text}' with confidence {ocr_result.confidence}")
             
             # Step 4: Create game event based on screen type
             event = self._create_game_event(frame, detection, regions, ocr_results)
@@ -213,14 +218,18 @@ class HoopSyncPipeline:
                 # Step 5: Store event in database with deduplication
                 if self.database.add_event(event):
                     self.extracted_events += 1
-                    self.logger.debug(f"Added event: {event.event_type} for {event.player_name}")
+                    self.logger.info(f"Added event: {event.event_type} for {event.player_name}")
                     
                     # Step 6: Sync to cloud if enabled
                     if self.cloud_sync.is_enabled():
                         self._sync_event(event)
+            else:
+                self.logger.debug(f"Frame {frame.frame_number}: No event created (validation failed)")
         
         except Exception as e:
             self.logger.error(f"Error processing frame: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _create_game_event(self, frame, detection, regions, ocr_results) -> Optional[GameEvent]:
         """
@@ -247,7 +256,7 @@ class HoopSyncPipeline:
             # Parse based on screen type
             if detection.screen_type in [ScreenType.BOX_SCORE, ScreenType.PLAYER_STATS]:
                 # Parse player statistics
-                stats = self.stat_parser.parse_player_stats(regions)
+                stats = self.ocr_parser.parse_player_stats(regions)
                 if stats:
                     player_name = stats.player_name
                     gamertag = stats.gamertag

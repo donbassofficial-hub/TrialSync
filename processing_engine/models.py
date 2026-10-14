@@ -140,6 +140,50 @@ class PlayerAttributes:
 
 
 @dataclass
+class PlayerMatchupStats:
+    """Individual player stats from matchup screen"""
+    player_name: str
+    gamertag: Optional[str] = None
+    ovr: Optional[int] = None  # Overall rating
+    position: Optional[str] = None  # SF, SG, PG, etc.
+    height: Optional[str] = None  # 6'8"
+    weight: Optional[int] = None  # 185 lbs
+    key_stats: Dict[str, int] = field(default_factory=dict)  # Mid-Range Shot: 94, etc.
+    average_stats: Dict[str, float] = field(default_factory=dict)  # PPG: 5.7, RPG: 0.3, etc.
+    grade: Optional[str] = None  # B-, A, etc.
+    
+    def get_display_name(self) -> str:
+        """Get formatted display name"""
+        if self.gamertag:
+            return f"{self.player_name} ({self.gamertag})"
+        return self.player_name
+
+
+@dataclass
+class PlayerMatchup:
+    """Complete player matchup comparison"""
+    left_player: PlayerMatchupStats
+    right_player: PlayerMatchupStats
+    timestamp: datetime = field(default_factory=datetime.now)
+    
+    @property
+    def ovr_difference(self) -> int:
+        """Get OVR difference (right - left)"""
+        if self.left_player.ovr and self.right_player.ovr:
+            return self.right_player.ovr - self.left_player.ovr
+        return 0
+    
+    @property
+    def favored_player(self) -> str:
+        """Get which player is favored by OVR"""
+        if self.ovr_difference > 0:
+            return self.right_player.get_display_name()
+        elif self.ovr_difference < 0:
+            return self.left_player.get_display_name()
+        return "Even matchup"
+
+
+@dataclass
 class GameEvent:
     """Deduplicated game event"""
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -153,6 +197,7 @@ class GameEvent:
     screen_source: ScreenType = ScreenType.UNKNOWN
     stats: Optional[PlayerStats] = None
     attributes: Optional[PlayerAttributes] = None
+    matchup: Optional[PlayerMatchup] = None
     detection_confidence: float = 0.0
     ocr_confidence: float = 0.0
     metadata: Dict[str, Any] = field(default_factory=dict)

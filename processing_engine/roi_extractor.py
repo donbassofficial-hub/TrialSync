@@ -98,11 +98,14 @@ class ROIExtractor:
             
             for roi in rois:
                 try:
+                    # Store original label for logging before validation
+                    original_label = roi.label
+                    
                     # Validate ROI bounds
                     roi = self._validate_roi(roi, img.shape)
                     
                     if roi is None:
-                        logger.warning(f"Invalid ROI bounds: {roi.label}")
+                        logger.warning(f"Invalid ROI bounds: {original_label}")
                         continue
                     
                     # Crop region
